@@ -4,6 +4,7 @@ export const mockDreams: Dream[] = [
   {
     id: 'car',
     title: 'הרכב שלי',
+    subtitle: 'חופש תנועה בקצב שלך',
     savedAmount: 25_000,
     targetAmount: 100_000,
     accent: 'primary',
@@ -16,6 +17,7 @@ export const mockDreams: Dream[] = [
   {
     id: 'thailand',
     title: 'חופשה בתאילנד',
+    subtitle: 'שקט, שמש וים',
     savedAmount: 16_000,
     targetAmount: 40_000,
     accent: 'mint',
@@ -28,6 +30,7 @@ export const mockDreams: Dream[] = [
   {
     id: 'laptop',
     title: 'מחשב חדש',
+    subtitle: 'כוח עבודה חדש ליום-יום',
     savedAmount: 7_200,
     targetAmount: 12_000,
     accent: 'peach',
@@ -40,6 +43,7 @@ export const mockDreams: Dream[] = [
   {
     id: 'house',
     title: 'בית החלומות',
+    subtitle: 'המקום שתמיד דמיינת',
     savedAmount: 150_000,
     targetAmount: 1_500_000,
     accent: 'pink',

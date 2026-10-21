@@ -29,6 +29,7 @@ export type DreamVisual =
 export type Dream = {
   id: string;
   title: string;
+  subtitle?: string;
   savedAmount: number;
   targetAmount: number;
   accent: DreamAccent;

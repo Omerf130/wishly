@@ -1,4 +1,5 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { type Href, useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { DreamCardMedia } from '@/components/dreams/DreamCardMedia';
 import { colors, typography } from '@/constants/theme';
@@ -10,15 +11,12 @@ type DreamCardProps = {
 };
 
 export function DreamCard({ dream }: DreamCardProps) {
+  const router = useRouter();
   const progressColor = colors[dream.accent];
   const percent = dreamProgressPercent(dream.savedAmount, dream.targetAmount);
 
   const onPress = () => {
-    Alert.alert(
-      'בקרוב',
-      `מסך פרטי החלום «${dream.title}» יתווסף בשלב הבא.`,
-      [{ text: 'הבנתי' }],
-    );
+    router.push(`/dream/${dream.id}` as Href);
   };
 
   return (
