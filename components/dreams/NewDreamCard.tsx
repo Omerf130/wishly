@@ -1,15 +1,12 @@
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
 
-export function NewDreamCard() {
-  const onPress = () => {
-    Alert.alert(
-      'בקרוב',
-      'תהליך יצירת חלום חדש יתווסף בשלב הבא.',
-      [{ text: 'הבנתי' }],
-    );
-  };
+type NewDreamCardProps = {
+  onPress: () => void;
+};
+
+export function NewDreamCard({ onPress }: NewDreamCardProps) {
 
   return (
     <Pressable

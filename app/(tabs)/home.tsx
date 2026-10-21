@@ -1,23 +1,27 @@
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { type Href, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DreamCard } from '@/components/dreams/DreamCard';
+import { DreamsEmptyState } from '@/components/dreams/DreamsEmptyState';
 import { NewDreamCard } from '@/components/dreams/NewDreamCard';
 import { HomeHeader } from '@/components/home/HomeHeader';
-import { colors } from '@/constants/theme';
-import { mockDreams } from '@/data/mockDreams';
+import { colors, typography } from '@/constants/theme';
+import { useDreamsList } from '@/hooks/useDreamsList';
 
 export default function DreamsHomeScreen() {
   const router = useRouter();
+  const { dreams, loading, error } = useDreamsList();
 
   const onPressSettings = () => {
     router.navigate('/settings' as Href);
   };
 
   const onPressAddDream = () => {
-    Alert.alert('בקרוב', 'תהליך יצירת חלום חדש יתווסף בשלב הבא.', [{ text: 'הבנתי' }]);
+    router.push('/dream/create' as Href);
   };
+
+  const showEmpty = !loading && !error && dreams.length === 0;
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -29,12 +33,28 @@ export default function DreamsHomeScreen() {
         alwaysBounceVertical={false}>
         <HomeHeader onPressSettings={onPressSettings} onPressAddDream={onPressAddDream} />
 
-        <View style={styles.list}>
-          {mockDreams.map((dream) => (
-            <DreamCard key={dream.id} dream={dream} />
-          ))}
-          <NewDreamCard />
-        </View>
+        {loading ? (
+          <View style={styles.loadingWrap}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        ) : null}
+
+        {error ? (
+          <View style={styles.errorWrap}>
+            <Text style={styles.errorText}>{error}</Text>
+          </View>
+        ) : null}
+
+        {showEmpty ? <DreamsEmptyState /> : null}
+
+        {!loading && !error && dreams.length > 0 ? (
+          <View style={styles.list}>
+            {dreams.map((dream) => (
+              <DreamCard key={dream.id} dream={dream} />
+            ))}
+            <NewDreamCard onPress={onPressAddDream} />
+          </View>
+        ) : null}
       </ScrollView>
     </SafeAreaView>
   );
@@ -54,5 +74,20 @@ const styles = StyleSheet.create({
   },
   list: {
     marginTop: 8,
+  },
+  loadingWrap: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  errorWrap: {
+    backgroundColor: 'rgba(237, 134, 165, 0.12)',
+    borderRadius: 14,
+    padding: 14,
+    marginTop: 12,
+  },
+  errorText: {
+    ...typography.body,
+    textAlign: 'right',
+    color: colors.pink,
   },
 });

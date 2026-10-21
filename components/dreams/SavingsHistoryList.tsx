@@ -7,17 +7,24 @@ import { formatIls } from '@/utils/formatCurrency';
 type SavingsHistoryListProps = {
   entries: SavingsEntry[];
   embedded?: boolean;
+  isLiveHistory?: boolean;
 };
 
-export function SavingsHistoryList({ entries, embedded = false }: SavingsHistoryListProps) {
+export function SavingsHistoryList({
+  entries,
+  embedded = false,
+  isLiveHistory = false,
+}: SavingsHistoryListProps) {
   return (
     <View style={[styles.wrap, embedded && styles.wrapEmbedded]}>
       <Text style={styles.heading}>היסטוריית חיסכון</Text>
-      {embedded ? (
-        <Text style={styles.demoNote}>נתוני הדגמה בלבד</Text>
-      ) : (
-        <Text style={styles.demoNote}>נתוני הדגמה — לא נשמרים במכשיר</Text>
-      )}
+      {!isLiveHistory ? (
+        embedded ? (
+          <Text style={styles.demoNote}>נתוני הדגמה בלבד</Text>
+        ) : (
+          <Text style={styles.demoNote}>נתוני הדגמה — לא נשמרים במכשיר</Text>
+        )
+      ) : null}
 
       {entries.length === 0 ? (
         <View style={styles.empty}>

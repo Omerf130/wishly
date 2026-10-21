@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { DevSqliteTestLink } from '@/components/dev/DevSqliteTestLink';
 import { colors, typography } from '@/constants/theme';
 
 const PRESETS = [0, 25, 50, 75, 100] as const;
@@ -39,6 +40,7 @@ export function RevealDevControls({
       <Pressable accessibilityRole="button" onPress={onReset} style={styles.reset}>
         <Text style={styles.resetText}>איפוס לפי התקדמות אמיתית</Text>
       </Pressable>
+      <DevSqliteTestLink />
     </View>
   );
 }

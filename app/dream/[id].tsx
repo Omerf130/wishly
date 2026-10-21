@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Pressable,
   ScrollView,
@@ -14,19 +15,45 @@ import { DreamDetailHeader } from '@/components/dreams/DreamDetailHeader';
 import { DreamImageReveal } from '@/components/dreams/DreamImageReveal';
 import { DreamSavingsInfoCard } from '@/components/dreams/DreamSavingsInfoCard';
 import { RevealDevControls } from '@/components/dreams/RevealDevControls';
-import { mockSavingsHistoryByDreamId } from '@/data/mockSavingsHistory';
 import { colors, typography } from '@/constants/theme';
-import { getDreamById } from '@/utils/dreamLookup';
+import { useDreamDetail } from '@/hooks/useDreamDetail';
 import { dreamProgressPercent } from '@/utils/formatCurrency';
 import { resolveDreamImageSource } from '@/utils/resolveDreamImageSource';
 
 export default function DreamDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const dream = useMemo(() => (id ? getDreamById(id) : undefined), [id]);
+  const { state } = useDreamDetail(id);
   const [previewProgress, setPreviewProgress] = useState<number | null>(null);
 
-  if (!dream) {
+  if (state.status === 'loading') {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (state.status === 'error') {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
+        <View style={styles.errorWrap}>
+          <Text style={styles.errorTitle}>לא ניתן לטעון את החלום</Text>
+          <Text style={styles.errorBody}>{state.message}</Text>
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => router.back()}
+            style={({ pressed }) => [styles.errorButton, pressed && styles.ctaPressed]}>
+            <Text style={styles.ctaLabel}>חזרה</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (state.status === 'not_found') {
     return (
       <SafeAreaView style={styles.safe} edges={['top', 'bottom', 'left', 'right']}>
         <View style={styles.errorWrap}>
@@ -43,11 +70,12 @@ export default function DreamDetailScreen() {
     );
   }
 
+  const dream = state.dream;
+  const history = state.history;
   const accentColor = colors[dream.accent];
   const actualProgress = dreamProgressPercent(dream.savedAmount, dream.targetAmount);
   const revealProgress = previewProgress ?? actualProgress;
   const imageSource = resolveDreamImageSource(dream.visual);
-  const history = mockSavingsHistoryByDreamId[dream.id] ?? [];
 
   const onAddSavings = () => {
     Alert.alert('בקרוב', 'הוספת חיסכון תתווסף בשלב הבא.', [{ text: 'הבנתי' }]);
@@ -94,6 +122,7 @@ export default function DreamDetailScreen() {
               progressPercent={actualProgress}
               historyEntries={history}
               onAddSavings={onAddSavings}
+              isLiveHistory
             />
           </View>
         </View>
@@ -119,6 +148,11 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 18,
     paddingBottom: 32,
+  },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   heroBlock: {
     position: 'relative',

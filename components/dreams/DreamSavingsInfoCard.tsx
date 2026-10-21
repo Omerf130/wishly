@@ -15,6 +15,7 @@ type DreamSavingsInfoCardProps = {
   progressPercent: number;
   historyEntries: SavingsEntry[];
   onAddSavings: () => void;
+  isLiveHistory?: boolean;
 };
 
 export function DreamSavingsInfoCard({
@@ -27,6 +28,7 @@ export function DreamSavingsInfoCard({
   progressPercent,
   historyEntries,
   onAddSavings,
+  isLiveHistory = false,
 }: DreamSavingsInfoCardProps) {
   const remaining = Math.max(0, targetAmount - savedAmount);
 
@@ -80,7 +82,11 @@ export function DreamSavingsInfoCard({
         <Text style={styles.ctaLabel}>הוספת חיסכון</Text>
       </Pressable>
 
-      <SavingsHistoryList entries={historyEntries} embedded />
+      <SavingsHistoryList
+        entries={historyEntries}
+        embedded
+        isLiveHistory={isLiveHistory}
+      />
     </View>
   );
 }
