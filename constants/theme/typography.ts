@@ -41,4 +41,22 @@ export const typography = {
     lineHeight: 20,
     color: colors.textMuted,
   },
+  screenTitle: {
+    ...baseText,
+    fontSize: 32,
+    fontWeight: '800',
+    lineHeight: 40,
+  },
+  cardTitle: {
+    ...baseText,
+    fontSize: 20,
+    fontWeight: '700',
+    lineHeight: 26,
+  },
+  stat: {
+    ...baseText,
+    fontSize: 15,
+    fontWeight: '600',
+    lineHeight: 22,
+  },
 } as const satisfies Record<string, TextStyle>;

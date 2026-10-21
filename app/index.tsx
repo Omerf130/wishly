@@ -1,26 +1,17 @@
+import { type Href, useRouter } from 'expo-router';
 import { useState } from 'react';
-import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { WelcomeDecor } from '@/components/WelcomeDecor';
 import { colors, typography } from '@/constants/theme';
 
 export default function WelcomeScreen() {
+  const router = useRouter();
   const [pressed, setPressed] = useState(false);
 
   const onStartPress = () => {
-    Alert.alert(
-      'בקרוב',
-      'הכפתור יוביל לשלב הבא בפיתוח — הרשמה, חלומות וחיסכון. בשלב CP1 זה מסך פתיחה בלבד.',
-      [{ text: 'הבנתי' }],
-    );
+    router.replace('/home' as Href);
   };
 
   return (
@@ -42,7 +33,7 @@ export default function WelcomeScreen() {
 
           <Pressable
             accessibilityRole="button"
-            accessibilityHint="יופעל בשלב הבא של הפיתוח"
+            accessibilityHint="מעבר למסך החלומות שלי"
             onPress={onStartPress}
             onPressIn={() => setPressed(true)}
             onPressOut={() => setPressed(false)}
@@ -53,7 +44,6 @@ export default function WelcomeScreen() {
             <Text style={styles.buttonLabel}>בואו נתחיל</Text>
           </Pressable>
 
-          <Text style={styles.hint}>המסך הבא יתווסף ב-CP2</Text>
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -110,10 +100,5 @@ const styles = StyleSheet.create({
   },
   buttonLabel: {
     ...typography.button,
-  },
-  hint: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginTop: 16,
   },
 });

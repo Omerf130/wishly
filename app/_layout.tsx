@@ -16,8 +16,10 @@ export default function RootLayout() {
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.background },
-          }}
-        />
+          }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        </Stack>
       </View>
     </SafeAreaProvider>
   );
