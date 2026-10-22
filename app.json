@@ -38,7 +38,13 @@
       "expo-font",
       "expo-status-bar",
       "expo-web-browser",
-      "expo-sqlite"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Wishly צריכה גישה לתמונות כדי שתוכל לבחור תמונה לחלום."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

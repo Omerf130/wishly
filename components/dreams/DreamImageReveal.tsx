@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Image,
@@ -12,6 +12,9 @@ import {
   type ImageStyle,
 } from 'react-native';
 import Animated, {
+  Easing,
+  runOnJS,
+  useAnimatedReaction,
   useAnimatedStyle,
   useSharedValue,
   withTiming,
@@ -31,6 +34,8 @@ type DreamImageRevealProps = {
   showProgressBadge?: boolean;
 };
 
+const REVEAL_ANIMATION_MS = 950;
+
 const clampProgress = (value: number) => Math.min(100, Math.max(0, value));
 
 /** Bottom layer only — visible in unrevealed regions; color clip stays unchanged above. */
@@ -39,11 +44,13 @@ function GrayscaleImageLayer({
   width,
   height,
   resizeMode,
+  onError,
 }: {
   source: ImageSourcePropType;
   width: number;
   height: number;
   resizeMode: ImageResizeMode;
+  onError?: () => void;
 }) {
   const webGrayStyle =
     Platform.OS === 'web'
@@ -56,6 +63,7 @@ function GrayscaleImageLayer({
         source={source}
         style={[{ width, height }, webGrayStyle]}
         resizeMode={resizeMode}
+        onError={onError}
       />
       {Platform.OS !== 'web' ? (
         <>
@@ -82,16 +90,64 @@ export function DreamImageReveal({
 }: DreamImageRevealProps) {
   const [layoutWidth, setLayoutWidth] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+  const [badgePercent, setBadgePercent] = useState(() => Math.round(clampProgress(progress)));
+
   const progressSv = useSharedValue(clampProgress(progress));
+  const skipNextAnimationRef = useRef(true);
 
   useEffect(() => {
-    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    setImageLoadFailed(false);
+  }, [source]);
+
+  useEffect(() => {
+    let mounted = true;
+    AccessibilityInfo.isReduceMotionEnabled().then((enabled) => {
+      if (mounted) {
+        setReduceMotion(enabled);
+      }
+    });
+
+    const subscription = AccessibilityInfo.addEventListener?.(
+      'reduceMotionChanged',
+      (enabled: boolean) => {
+        setReduceMotion(enabled);
+      },
+    );
+
+    return () => {
+      mounted = false;
+      subscription?.remove?.();
+    };
   }, []);
+
+  useAnimatedReaction(
+    () => progressSv.value,
+    (value) => {
+      runOnJS(setBadgePercent)(Math.round(value));
+    },
+    [progressSv],
+  );
 
   useEffect(() => {
     const next = clampProgress(progress);
+
+    if (skipNextAnimationRef.current) {
+      progressSv.value = next;
+      setBadgePercent(Math.round(next));
+      skipNextAnimationRef.current = false;
+      return;
+    }
+
+    if (reduceMotion) {
+      progressSv.value = next;
+      setBadgePercent(Math.round(next));
+      return;
+    }
+
     progressSv.value = withTiming(next, {
-      duration: reduceMotion ? 0 : 420,
+      duration: REVEAL_ANIMATION_MS,
+      easing: Easing.inOut(Easing.cubic),
     });
   }, [progress, progressSv, reduceMotion]);
 
@@ -106,21 +162,26 @@ export function DreamImageReveal({
 
   const anchorRight = revealDirection === 'physical-start';
   const imageHeight = layoutWidth > 0 ? layoutWidth / aspectRatio : 0;
-  const displayPercent = Math.round(clampProgress(progress));
+  const onImageError = () => setImageLoadFailed(true);
 
   return (
     <View
       style={[styles.frame, { aspectRatio, borderRadius }]}
       onLayout={onLayout}
       accessibilityRole="image"
-      accessibilityLabel={`תמונת חלום, ${displayPercent} אחוז נחשפו בצבע`}>
-      {layoutWidth > 0 ? (
+      accessibilityLabel={`תמונת חלום, ${badgePercent} אחוז נחשפו בצבע`}>
+      {imageLoadFailed ? (
+        <View style={styles.missingImage}>
+          <Text style={styles.missingImageText}>תמונה לא זמינה</Text>
+        </View>
+      ) : layoutWidth > 0 ? (
         <>
           <GrayscaleImageLayer
             source={source}
             width={layoutWidth}
             height={imageHeight}
             resizeMode="cover"
+            onError={onImageError}
           />
 
           <Animated.View
@@ -139,6 +200,7 @@ export function DreamImageReveal({
                 anchorRight ? styles.imageAnchorRight : styles.imageAnchorLeft,
               ]}
               resizeMode="cover"
+              onError={onImageError}
             />
             <View
               style={[
@@ -152,7 +214,7 @@ export function DreamImageReveal({
 
       {showProgressBadge ? (
         <View style={[styles.badge, { backgroundColor: accentColor }]}>
-          <Text style={styles.badgeText}>{displayPercent}%</Text>
+          <Text style={styles.badgeText}>{badgePercent}%</Text>
         </View>
       ) : null}
     </View>
@@ -234,5 +296,16 @@ const styles = StyleSheet.create({
     ...typography.button,
     fontSize: 14,
     color: colors.white,
+  },
+  missingImage: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 120,
+  },
+  missingImageText: {
+    ...typography.body,
+    color: colors.textMuted,
+    fontWeight: '600',
   },
 });

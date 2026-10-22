@@ -1,4 +1,4 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { type Href, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -78,7 +78,7 @@ export default function DreamDetailScreen() {
   const imageSource = resolveDreamImageSource(dream.visual);
 
   const onAddSavings = () => {
-    Alert.alert('בקרוב', 'הוספת חיסכון תתווסף בשלב הבא.', [{ text: 'הבנתי' }]);
+    router.push(`/dream/savings-action?id=${dream.id}` as Href);
   };
 
   return (

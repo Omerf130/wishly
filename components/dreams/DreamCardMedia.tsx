@@ -1,9 +1,10 @@
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 
 import { ImageBottomGradient } from '@/components/ui/ImageBottomGradient';
-import { dreamImageAssets } from '@/constants/dreamImages';
 import { colors, typography } from '@/constants/theme';
 import type { DreamVisual } from '@/types/dream';
+import { resolveDreamImageSource } from '@/utils/resolveDreamImageSource';
 
 type DreamCardMediaProps = {
   title: string;
@@ -11,31 +12,37 @@ type DreamCardMediaProps = {
   accentColor: string;
 };
 
-function resolveImageSource(visual: DreamVisual) {
-  if (visual.type === 'asset') {
-    return dreamImageAssets[visual.assetKey];
-  }
-  if (visual.type === 'uri') {
-    return { uri: visual.uri };
-  }
-  return null;
-}
-
 /**
  * Image / placeholder area — base layer for future reveal (grayscale + color overlay).
  */
 export function DreamCardMedia({ title, visual, accentColor }: DreamCardMediaProps) {
-  const imageSource = resolveImageSource(visual);
-  const hasPhoto = imageSource != null;
+  const imageSource = resolveDreamImageSource(visual);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
+
+  useEffect(() => {
+    setImageLoadFailed(false);
+  }, [visual]);
+
+  const hasPhoto = imageSource != null && !imageLoadFailed;
 
   return (
     <View style={styles.media}>
       <View style={styles.mediaInner}>
-        {hasPhoto ? (
+        {imageSource && !imageLoadFailed ? (
           <>
-            <Image source={imageSource} style={styles.image} resizeMode="cover" />
+            <Image
+              source={imageSource}
+              style={styles.image}
+              resizeMode="cover"
+              onError={() => setImageLoadFailed(true)}
+            />
             <View style={styles.revealSlot} pointerEvents="none" />
           </>
+        ) : imageLoadFailed ? (
+          <View style={styles.missingImage}>
+            <Text style={styles.missingImageText}>תמונה לא זמינה</Text>
+            <View style={styles.revealSlot} />
+          </View>
         ) : visual.type === 'placeholder' ? (
           <View style={[styles.placeholder, { backgroundColor: visual.backgroundColor }]}>
             <View style={[styles.blobPrimary, { backgroundColor: visual.accentColor }]} />
@@ -72,6 +79,17 @@ const styles = StyleSheet.create({
   image: {
     width: '100%',
     height: '100%',
+  },
+  missingImage: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#CBD5E1',
+  },
+  missingImageText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    fontWeight: '600',
   },
   placeholder: {
     flex: 1,

@@ -19,12 +19,21 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { builtInDreamImageOptions } from '@/constants/builtInDreamImages';
 import { dreamImageAssets } from '@/constants/dreamImages';
 import type { DreamImageAssetKey } from '@/constants/dreamImages';
+import {
+  LOCAL_DREAM_IMAGE_ACCENT,
+  LOCAL_DREAM_IMAGE_LABEL,
+} from '@/constants/localDreamImage';
 import { colors, typography } from '@/constants/theme';
 import { getDatabase } from '@/database/client';
 import { createDream } from '@/database';
 import { ValidationError } from '@/database/errors';
 import { ilsToAgorot } from '@/database/money';
+import {
+  copyPickerImageToDreamStore,
+  deleteDreamImageFile,
+} from '@/utils/dreamLocalImages';
 import { parseShekelsInput } from '@/utils/parseShekelsInput';
+import { pickDreamGalleryImage } from '@/utils/pickDreamGalleryImage';
 
 type FormErrors = {
   title?: string;
@@ -41,6 +50,10 @@ type KeyboardMetrics = {
 
 type AmountField = 'target' | 'initial';
 
+type ImageChoice =
+  | { mode: 'builtIn'; id: DreamImageAssetKey }
+  | { mode: 'local'; previewUri: string };
+
 export default function CreateDreamScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -55,7 +68,8 @@ export default function CreateDreamScreen() {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedImage, setSelectedImage] = useState<DreamImageAssetKey | null>(null);
+  const [imageChoice, setImageChoice] = useState<ImageChoice | null>(null);
+  const [pickingImage, setPickingImage] = useState(false);
   const [targetShekels, setTargetShekels] = useState('');
   const [initialShekels, setInitialShekels] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
@@ -120,7 +134,7 @@ export default function CreateDreamScreen() {
     if (!title.trim()) {
       next.title = 'שם החלום חובה';
     }
-    if (!selectedImage) {
+    if (!imageChoice) {
       next.image = 'יש לבחור תמונה';
     }
     const target = parseShekelsInput(targetShekels);
@@ -141,7 +155,35 @@ export default function CreateDreamScreen() {
       next.initial = 'סכום התחלתי לא יכול לעלות על סכום היעד';
     }
     return next;
-  }, [initialShekels, selectedImage, targetShekels, title]);
+  }, [imageChoice, initialShekels, targetShekels, title]);
+
+  const onPickMyImage = useCallback(async () => {
+    if (pickingImage || saving) {
+      return;
+    }
+
+    setPickingImage(true);
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.image;
+      delete next.general;
+      return next;
+    });
+
+    try {
+      const result = await pickDreamGalleryImage();
+      if (result.status === 'canceled') {
+        return;
+      }
+      if (result.status === 'error') {
+        setErrors((prev) => ({ ...prev, image: result.message }));
+        return;
+      }
+      setImageChoice({ mode: 'local', previewUri: result.uri });
+    } finally {
+      setPickingImage(false);
+    }
+  }, [pickingImage, saving]);
 
   const onSave = useCallback(async () => {
     if (savingRef.current) {
@@ -156,41 +198,68 @@ export default function CreateDreamScreen() {
 
     const target = parseShekelsInput(targetShekels)!;
     const initial = parseShekelsInput(initialShekels.trim() || '0') ?? 0;
-    const imageOption = builtInDreamImageOptions.find((o) => o.id === selectedImage)!;
+    const choice = imageChoice!;
 
     savingRef.current = true;
     setSaving(true);
     setErrors({});
+
+    let persistedImagePath: string | null = null;
 
     try {
       const db = await getDatabase();
       const targetAgorot = ilsToAgorot(target);
       const initialAgorot = initial > 0 ? ilsToAgorot(initial) : 0;
 
+      let imageType: 'builtIn' | 'local' = 'builtIn';
+      let imageReference: string;
+      let accentColor: string;
+
+      if (choice.mode === 'local') {
+        persistedImagePath = await copyPickerImageToDreamStore(choice.previewUri);
+        imageType = 'local';
+        imageReference = persistedImagePath;
+        accentColor = LOCAL_DREAM_IMAGE_ACCENT;
+      } else {
+        const imageOption = builtInDreamImageOptions.find((o) => o.id === choice.id)!;
+        imageReference = imageOption.id;
+        accentColor = imageOption.accent;
+      }
+
       const created = await createDream(db, {
         title: title.trim(),
         description: description.trim() || null,
         targetAmountAgorot: targetAgorot,
-        imageType: 'builtIn',
-        imageReference: imageOption.id,
-        accentColor: imageOption.accent,
+        imageType,
+        imageReference,
+        accentColor,
         initialSavedAmountAgorot: initialAgorot > 0 ? initialAgorot : undefined,
       });
 
       router.replace(`/dream/${created.id}` as Href);
     } catch (error) {
+      if (persistedImagePath) {
+        try {
+          await deleteDreamImageFile(persistedImagePath);
+        } catch {
+          // Best-effort cleanup of orphaned copy after failed save.
+        }
+      }
+
       const message =
         error instanceof ValidationError
           ? error.message
           : error instanceof Error
             ? error.message
-            : 'שמירת החלום נכשלה';
+            : choice.mode === 'local'
+              ? 'שמירת החלום עם התמונה האישית נכשלה'
+              : 'שמירת החלום נכשלה';
       setErrors({ general: message });
     } finally {
       savingRef.current = false;
       setSaving(false);
     }
-  }, [description, router, selectedImage, targetShekels, title, initialShekels, validate]);
+  }, [description, imageChoice, router, targetShekels, title, initialShekels, validate]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -269,13 +338,14 @@ export default function CreateDreamScreen() {
             <Text style={styles.label}>בחירת תמונה *</Text>
             <View style={styles.imageGrid}>
               {builtInDreamImageOptions.map((option) => {
-                const selected = selectedImage === option.id;
+                const selected =
+                  imageChoice?.mode === 'builtIn' && imageChoice.id === option.id;
                 return (
                   <Pressable
                     key={option.id}
                     accessibilityRole="button"
                     accessibilityState={{ selected }}
-                    onPress={() => setSelectedImage(option.id)}
+                    onPress={() => setImageChoice({ mode: 'builtIn', id: option.id })}
                     style={[
                       styles.imageTile,
                       selected && styles.imageTileSelected,
@@ -286,6 +356,38 @@ export default function CreateDreamScreen() {
                   </Pressable>
                 );
               })}
+              {(() => {
+                const localSelected = imageChoice?.mode === 'local';
+                const localPreviewUri =
+                  imageChoice?.mode === 'local' ? imageChoice.previewUri : null;
+                return (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: localSelected }}
+                    disabled={pickingImage || saving}
+                    onPress={() => void onPickMyImage()}
+                    style={[
+                      styles.imageTile,
+                      localSelected && styles.imageTileSelected,
+                      {
+                        borderColor: localSelected ? colors.primary : 'rgba(38, 51, 75, 0.12)',
+                      },
+                    ]}>
+                    {localPreviewUri ? (
+                      <Image source={{ uri: localPreviewUri }} style={styles.imagePreview} />
+                    ) : (
+                      <View style={styles.myImagePlaceholder}>
+                        {pickingImage ? (
+                          <ActivityIndicator color={colors.primary} />
+                        ) : (
+                          <Text style={styles.myImagePlaceholderText}>+</Text>
+                        )}
+                      </View>
+                    )}
+                    <Text style={styles.imageLabel}>{LOCAL_DREAM_IMAGE_LABEL}</Text>
+                  </Pressable>
+                );
+              })()}
             </View>
             {errors.image ? <Text style={styles.fieldError}>{errors.image}</Text> : null}
           </View>
@@ -474,6 +576,19 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 92,
     resizeMode: 'cover',
+  },
+  myImagePlaceholder: {
+    width: '100%',
+    height: 92,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 247, 236, 0.9)',
+  },
+  myImagePlaceholderText: {
+    ...typography.headline,
+    color: colors.primary,
+    fontSize: 28,
+    lineHeight: 32,
   },
   imageLabel: {
     ...typography.caption,

@@ -29,7 +29,13 @@ export function useDreamDetail(dreamId: string | undefined) {
       return;
     }
 
-    setState({ status: 'loading' });
+    setState((prev) => {
+      if (prev.status === 'ready' && prev.dream.id === dreamId) {
+        return prev;
+      }
+      return { status: 'loading' };
+    });
+
     try {
       const db = await getDatabase();
       const record = await getDreamById(db, dreamId);

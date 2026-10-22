@@ -31,18 +31,32 @@ export function SavingsHistoryList({
           <Text style={styles.emptyText}>עדיין אין הפקדות להצגה</Text>
         </View>
       ) : (
-        entries.map((entry, index) => (
-          <View key={entry.id}>
-            <View style={styles.row}>
-              <Text style={styles.amount}>{formatIls(entry.amount)}</Text>
-              <View style={styles.rowText}>
-                <Text style={styles.action}>{entry.actionLabel}</Text>
-                <Text style={styles.date}>{entry.dateLabel}</Text>
+        entries.map((entry, index) => {
+          const isWithdrawal = entry.kind === 'withdrawal';
+          const amountPrefix = isWithdrawal ? '−' : '+';
+          return (
+            <View key={entry.id}>
+              <View style={styles.row}>
+                <Text
+                  style={[
+                    styles.amount,
+                    isWithdrawal ? styles.amountWithdrawal : styles.amountDeposit,
+                  ]}>
+                  {amountPrefix}
+                  {formatIls(entry.amount)}
+                </Text>
+                <View style={styles.rowText}>
+                  <Text style={[styles.action, isWithdrawal && styles.actionWithdrawal]}>
+                    {entry.actionLabel}
+                  </Text>
+                  <Text style={styles.date}>{entry.dateLabel}</Text>
+                  {entry.note ? <Text style={styles.note}>{entry.note}</Text> : null}
+                </View>
               </View>
+              {index < entries.length - 1 ? <View style={styles.separator} /> : null}
             </View>
-            {index < entries.length - 1 ? <View style={styles.separator} /> : null}
-          </View>
-        ))
+          );
+        })
       )}
     </View>
   );
@@ -93,8 +107,22 @@ const styles = StyleSheet.create({
   },
   amount: {
     ...typography.stat,
-    color: colors.primary,
     fontWeight: '700',
+  },
+  amountDeposit: {
+    color: colors.primary,
+  },
+  amountWithdrawal: {
+    color: colors.pink,
+  },
+  actionWithdrawal: {
+    color: colors.pink,
+  },
+  note: {
+    ...typography.caption,
+    textAlign: 'right',
+    marginTop: 4,
+    color: colors.textMuted,
   },
   separator: {
     height: 1,

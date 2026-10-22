@@ -1,4 +1,5 @@
 import { ValidationError } from '@/database/errors';
+import { ilsToAgorot } from '@/database/money';
 import {
   assertNonNegativeBalance,
   assertSufficientBalance,
@@ -86,6 +87,12 @@ export function runValidationAssertions(): AssertionResult[] {
 
   run('non-negative balance', () => {
     assertNonNegativeBalance(0);
+  });
+
+  run('agorot conversion for decimal shekels', () => {
+    if (ilsToAgorot(125.5) !== 12_550) {
+      throw new Error('expected 12550 agorot');
+    }
   });
 
   return results;

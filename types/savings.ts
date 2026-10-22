@@ -4,5 +4,6 @@ export type SavingsEntry = {
   dateLabel: string;
   amount: number;
   actionLabel: string;
+  kind: 'deposit' | 'withdrawal';
   note?: string;
 };

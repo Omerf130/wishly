@@ -8,6 +8,9 @@ export function resolveDreamImageSource(visual: DreamVisual): ImageSourcePropTyp
     return dreamImageAssets[visual.assetKey];
   }
   if (visual.type === 'uri') {
+    if (!visual.uri.trim()) {
+      return null;
+    }
     return { uri: visual.uri };
   }
   return null;
