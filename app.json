@@ -44,7 +44,9 @@
         {
           "photosPermission": "Wishly צריכה גישה לתמונות כדי שתוכל לבחור תמונה לחלום."
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true

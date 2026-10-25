@@ -1,9 +1,17 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { SavingsHistoryList } from '@/components/dreams/SavingsHistoryList';
 import { colors, typography } from '@/constants/theme';
+import { agorotToIls, ilsToAgorot } from '@/database/money';
 import type { SavingsEntry } from '@/types/savings';
-import { formatIls } from '@/utils/formatCurrency';
+import { formatIls, formatIlsExact, isDreamSavingsGoalReached } from '@/utils/formatCurrency';
+import { formatLocalDateYmdHebrew } from '@/utils/localCalendarDate';
+import {
+  buildSavingsForecast,
+  formatEstimatedMonthsHebrew,
+  getMonthlyPlanComparisonCopy,
+} from '@/utils/savingsForecast';
 
 type DreamSavingsInfoCardProps = {
   title: string;
@@ -16,6 +24,8 @@ type DreamSavingsInfoCardProps = {
   historyEntries: SavingsEntry[];
   onAddSavings: () => void;
   isLiveHistory?: boolean;
+  monthlySavingsAmount?: number | null;
+  targetDate?: string | null;
 };
 
 export function DreamSavingsInfoCard({
@@ -29,11 +39,49 @@ export function DreamSavingsInfoCard({
   historyEntries,
   onAddSavings,
   isLiveHistory = false,
+  monthlySavingsAmount = null,
+  targetDate = null,
 }: DreamSavingsInfoCardProps) {
   const remaining = Math.max(0, targetAmount - savedAmount);
+  const goalReached = isDreamSavingsGoalReached(savedAmount, targetAmount);
+
+  const forecast = useMemo(
+    () =>
+      buildSavingsForecast({
+        savedAgorot: ilsToAgorot(savedAmount),
+        targetAgorot: ilsToAgorot(targetAmount),
+        monthlySavingsAgorot:
+          monthlySavingsAmount != null ? ilsToAgorot(monthlySavingsAmount) : null,
+        targetDateYmd: targetDate,
+      }),
+    [monthlySavingsAmount, savedAmount, targetAmount, targetDate],
+  );
+
+  const monthlyPlanLabel =
+    monthlySavingsAmount != null && monthlySavingsAmount > 0
+      ? formatIlsExact(monthlySavingsAmount)
+      : '—';
+
+  const estimatedTimeLabel = goalReached
+    ? 'היעד הושג'
+    : formatEstimatedMonthsHebrew(forecast.estimatedMonthsFromMonthlyPlan);
+
+  const hasPlanning = (monthlySavingsAmount ?? 0) > 0 || Boolean(targetDate);
+  const hasMonthlyPlan = (monthlySavingsAmount ?? 0) > 0;
+  const hasTargetDatePlan = Boolean(targetDate?.trim());
+  const monthlyPlanGap = forecast.monthlyPlanGap;
+  const comparisonCopy =
+    !goalReached && hasMonthlyPlan && hasTargetDatePlan && monthlyPlanGap
+      ? getMonthlyPlanComparisonCopy(monthlyPlanGap)
+      : null;
 
   return (
     <View style={styles.card}>
+      {goalReached ? (
+        <View style={styles.goalReachedBadge}>
+          <Text style={styles.goalReachedBadgeText}>היעד הושג</Text>
+        </View>
+      ) : null}
       <View style={styles.header}>
         <View style={[styles.iconBadge, { borderColor: accentColor }]}>
           <Text style={[styles.iconGlyph, { color: accentColor }]}>{iconGlyph}</Text>
@@ -70,9 +118,79 @@ export function DreamSavingsInfoCard({
           glyph="◎"
           tint={colors.peach}
         />
-        <StatChip label="חיסכון חודשי מתוכנן" value="—" glyph="▦" tint={colors.mint} />
-        <StatChip label="זמן משוער ליעד" value="—" glyph="◷" tint={colors.primary} />
+        <StatChip label="חיסכון חודשי מתוכנן" value={monthlyPlanLabel} glyph="▦" tint={colors.mint} />
+        <StatChip label="זמן משוער ליעד" value={estimatedTimeLabel} glyph="◷" tint={colors.primary} />
       </View>
+
+      {hasPlanning ? (
+        <View
+          style={[
+            styles.planSummary,
+            comparisonCopy?.tone === 'warn' && styles.planSummaryWarn,
+            comparisonCopy?.tone === 'success' && styles.planSummarySuccess,
+          ]}>
+          <Text style={styles.planSummaryTitle}>התכנון שלך</Text>
+          {targetDate ? (
+            <Text style={styles.planSummaryLine}>
+              תאריך יעד: {formatLocalDateYmdHebrew(targetDate)}
+            </Text>
+          ) : null}
+          {comparisonCopy && monthlyPlanGap ? (
+            <>
+              <Text style={styles.planSummaryLine}>
+                החיסכון שתכננת:{' '}
+                <Text style={styles.planSummaryStrong}>
+                  {formatIlsExact(agorotToIls(monthlyPlanGap.plannedMonthlyAgorot))}
+                </Text>
+              </Text>
+              <Text style={styles.planSummaryLine}>
+                החיסכון הנדרש:{' '}
+                <Text style={styles.planSummaryStrong}>
+                  {formatIlsExact(agorotToIls(monthlyPlanGap.requiredMonthlyAgorot))}
+                </Text>
+              </Text>
+              <Text
+                style={[
+                  styles.planSummaryStatus,
+                  comparisonCopy.tone === 'warn'
+                    ? styles.planSummaryStatusWarn
+                    : styles.planSummaryStatusSuccess,
+                ]}>
+                {comparisonCopy.statusMessage}
+              </Text>
+              {comparisonCopy.showGapRecommendation ? (
+                <Text style={styles.planSummaryNote}>
+                  כדאי להגדיל את החיסכון החודשי המתוכנן ב־
+                  {formatIlsExact(agorotToIls(monthlyPlanGap.additionalMonthlyAgorot))}
+                </Text>
+              ) : null}
+              {comparisonCopy.showEstimatedMonthsFromPlan ? (
+                <Text style={styles.planSummaryLine}>
+                  הערכה לפי התכנון:{' '}
+                  {formatEstimatedMonthsHebrew(forecast.estimatedMonthsFromMonthlyPlan)} עד ליעד
+                </Text>
+              ) : null}
+            </>
+          ) : null}
+          {!comparisonCopy &&
+          hasTargetDatePlan &&
+          !hasMonthlyPlan &&
+          forecast.requiredMonthlyAgorotForDate != null &&
+          forecast.requiredMonthlyAgorotForDate > 0 &&
+          !goalReached ? (
+            <Text style={styles.planSummaryLine}>
+              הערכה: נדרשים כ-
+              {formatIlsExact(agorotToIls(forecast.requiredMonthlyAgorotForDate))} בחודש להגעה לתאריך
+            </Text>
+          ) : null}
+          {forecast.targetDatePast && !goalReached ? (
+            <Text style={styles.planSummaryNote}>
+              תאריך היעד שבחרת כבר עבר. כדאי לעדכן אותו.
+            </Text>
+          ) : null}
+          <Text style={styles.planDisclaimer}>הערכה בלבד — החיסכון מתעדכן רק בפועל.</Text>
+        </View>
+      ) : null}
 
       <Pressable
         accessibilityRole="button"
@@ -120,6 +238,21 @@ function StatChip({
 const CARD_SURFACE = '#FFFCF7';
 
 const styles = StyleSheet.create({
+  goalReachedBadge: {
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(80, 200, 179, 0.18)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(80, 200, 179, 0.45)',
+  },
+  goalReachedBadgeText: {
+    ...typography.caption,
+    color: colors.mint,
+    fontWeight: '700',
+  },
   card: {
     backgroundColor: CARD_SURFACE,
     borderRadius: 28,
@@ -204,6 +337,67 @@ const styles = StyleSheet.create({
     ...typography.caption,
     marginTop: 4,
     writingDirection: 'rtl',
+  },
+  planSummary: {
+    backgroundColor: 'rgba(118, 86, 232, 0.06)',
+    borderRadius: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(118, 86, 232, 0.12)',
+  },
+  planSummaryWarn: {
+    backgroundColor: 'rgba(246, 173, 102, 0.12)',
+    borderColor: 'rgba(246, 173, 102, 0.35)',
+  },
+  planSummarySuccess: {
+    backgroundColor: 'rgba(80, 200, 179, 0.1)',
+    borderColor: 'rgba(80, 200, 179, 0.32)',
+  },
+  planSummaryTitle: {
+    ...typography.caption,
+    fontWeight: '800',
+    color: colors.primary,
+    textAlign: 'right',
+    marginBottom: 4,
+  },
+  planSummaryLine: {
+    ...typography.caption,
+    textAlign: 'right',
+    color: colors.textMuted,
+    marginBottom: 2,
+  },
+  planSummaryStrong: {
+    color: colors.text,
+    fontWeight: '700',
+  },
+  planSummaryStatus: {
+    ...typography.caption,
+    textAlign: 'right',
+    fontWeight: '700',
+    marginTop: 6,
+    marginBottom: 2,
+  },
+  planSummaryStatusWarn: {
+    color: colors.peach,
+  },
+  planSummaryStatusSuccess: {
+    color: colors.mint,
+  },
+  planSummaryNote: {
+    ...typography.caption,
+    textAlign: 'right',
+    color: colors.peach,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  planDisclaimer: {
+    ...typography.caption,
+    textAlign: 'right',
+    color: colors.textMuted,
+    marginTop: 6,
+    fontSize: 11,
   },
   statsRow: {
     flexDirection: 'row',

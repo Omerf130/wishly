@@ -8,8 +8,14 @@ import { validateCreateDreamInput, validateUpdateDreamInput } from '@/database/v
 import { runInExclusiveTransaction } from '@/database/foreignKeys';
 import { addDepositInternal } from '@/database/transactionsRepository';
 import type { CreateDreamInput, DreamRecord, UpdateDreamInput } from '@/types/database';
+import { DREAM_IMAGES_DIR, deleteDreamImageFile } from '@/utils/dreamLocalImages';
 
 const OPENING_BALANCE_NOTE = 'יתרת פתיחה';
+
+function isPrivateDreamImagePath(relativePath: string): boolean {
+  const normalized = relativePath.replace(/^\/+/, '');
+  return normalized.startsWith(`${DREAM_IMAGES_DIR}/`);
+}
 
 export async function createDream(
   db: SQLiteDatabase,
@@ -24,8 +30,8 @@ export async function createDream(
     await txn.runAsync(
       `INSERT INTO dreams (
         id, title, description, target_amount, image_type, image_reference,
-        accent_color, planned_monthly_saving, status, created_at, updated_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
+        accent_color, monthly_savings_agorot, target_date, status, created_at, updated_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?)`,
       id,
       input.title.trim(),
       input.description?.trim() ?? null,
@@ -33,7 +39,8 @@ export async function createDream(
       input.imageType,
       input.imageReference.trim(),
       input.accentColor.trim(),
-      input.plannedMonthlySavingAgorot ?? null,
+      input.monthlySavingsAgorot ?? null,
+      input.targetDate ?? null,
       timestamp,
       timestamp,
     );
@@ -65,6 +72,18 @@ export async function getDreamById(
   return row ? mapDreamRow(row) : null;
 }
 
+export async function countDreamsWithLocalImageReference(
+  db: SQLiteDatabase,
+  relativePath: string,
+): Promise<number> {
+  const row = await db.getFirstAsync<{ count: number }>(
+    `SELECT COUNT(*) AS count FROM dreams
+     WHERE image_type = 'local' AND image_reference = ?`,
+    relativePath.trim(),
+  );
+  return row?.count ?? 0;
+}
+
 export async function listDreams(db: SQLiteDatabase): Promise<DreamRecord[]> {
   const rows = await db.getAllAsync<Parameters<typeof mapDreamRow>[0]>(
     'SELECT * FROM dreams ORDER BY datetime(created_at) DESC',
@@ -91,10 +110,11 @@ export async function updateDream(
     imageType: input.imageType ?? existing.imageType,
     imageReference: input.imageReference?.trim() ?? existing.imageReference,
     accentColor: input.accentColor?.trim() ?? existing.accentColor,
-    plannedMonthlySavingAgorot:
-      input.plannedMonthlySavingAgorot !== undefined
-        ? input.plannedMonthlySavingAgorot
-        : existing.plannedMonthlySaving,
+    monthlySavingsAgorot:
+      input.monthlySavingsAgorot !== undefined
+        ? input.monthlySavingsAgorot
+        : existing.monthlySavingsAgorot,
+    targetDate: input.targetDate !== undefined ? input.targetDate : existing.targetDate,
     status: input.status ?? existing.status,
   };
 
@@ -106,7 +126,8 @@ export async function updateDream(
       image_type = ?,
       image_reference = ?,
       accent_color = ?,
-      planned_monthly_saving = ?,
+      monthly_savings_agorot = ?,
+      target_date = ?,
       status = ?,
       updated_at = ?
     WHERE id = ?`,
@@ -116,7 +137,8 @@ export async function updateDream(
     next.imageType,
     next.imageReference,
     next.accentColor,
-    next.plannedMonthlySavingAgorot,
+    next.monthlySavingsAgorot,
+    next.targetDate,
     next.status,
     nowIso(),
     id,
@@ -160,4 +182,38 @@ export async function deleteDream(db: SQLiteDatabase, id: string): Promise<void>
       );
     }
   });
+}
+
+/**
+ * Deletes a dream (and cascaded transactions), then removes its private local image file
+ * only when no other dream references the same path.
+ */
+export async function deleteDreamWithLocalImageCleanup(
+  db: SQLiteDatabase,
+  id: string,
+): Promise<void> {
+  const existing = await getDreamById(db, id);
+  if (!existing) {
+    throw new NotFoundError('החלום לא נמצא');
+  }
+
+  const localImagePath =
+    existing.imageType === 'local' && isPrivateDreamImagePath(existing.imageReference)
+      ? existing.imageReference
+      : null;
+
+  await deleteDream(db, id);
+
+  if (!localImagePath) {
+    return;
+  }
+
+  const remainingReferences = await countDreamsWithLocalImageReference(db, localImagePath);
+  if (remainingReferences === 0) {
+    try {
+      await deleteDreamImageFile(localImagePath);
+    } catch {
+      console.warn(`[Wishly] לא ניתן למחוק קובץ תמונה אחרי מחיקת חלום: ${localImagePath}`);
+    }
+  }
 }

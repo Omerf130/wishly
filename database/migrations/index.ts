@@ -3,6 +3,10 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { nowIso } from '@/database/dates';
 import { enableForeignKeys } from '@/database/foreignKeys';
 import { migration001Initial, MIGRATION_VERSION as V1 } from '@/database/migrations/001_initial';
+import {
+  migration002DreamSavingsPlan,
+  MIGRATION_VERSION as V2,
+} from '@/database/migrations/002_dream_savings_plan';
 import { ensureCoreSchemaPresent } from '@/database/schema';
 
 type Migration = {
@@ -12,6 +16,7 @@ type Migration = {
 
 const MIGRATIONS: Migration[] = [
   { version: V1, up: migration001Initial },
+  { version: V2, up: migration002DreamSavingsPlan },
 ];
 
 export async function ensureSchemaMigrationsTable(db: SQLiteDatabase): Promise<void> {

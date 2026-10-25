@@ -8,7 +8,8 @@ type DreamRow = {
   image_type: 'builtIn' | 'local';
   image_reference: string;
   accent_color: string;
-  planned_monthly_saving: number | null;
+  monthly_savings_agorot: number | null;
+  target_date: string | null;
   status: DreamStatus;
   created_at: string;
   updated_at: string;
@@ -33,7 +34,8 @@ export function mapDreamRow(row: DreamRow): DreamRecord {
     imageType: row.image_type,
     imageReference: row.image_reference,
     accentColor: row.accent_color,
-    plannedMonthlySaving: row.planned_monthly_saving,
+    monthlySavingsAgorot: row.monthly_savings_agorot,
+    targetDate: row.target_date,
     status: row.status,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

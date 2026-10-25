@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AccessibilityInfo,
   Image,
@@ -32,11 +32,23 @@ type DreamImageRevealProps = {
   revealDirection?: RevealDirection;
   accentColor?: string;
   showProgressBadge?: boolean;
+  /** Fires when a progress transition finishes (or snaps), except the initial mount. */
+  onRevealProgressSettled?: () => void;
 };
 
-const REVEAL_ANIMATION_MS = 950;
+export const REVEAL_ANIMATION_MS = 950;
 
 const clampProgress = (value: number) => Math.min(100, Math.max(0, value));
+
+function sourceIdentity(source: ImageSourcePropType): string {
+  if (typeof source === 'number') {
+    return `asset:${source}`;
+  }
+  if (typeof source === 'object' && source !== null && 'uri' in source && source.uri) {
+    return `uri:${source.uri}`;
+  }
+  return 'unknown';
+}
 
 /** Bottom layer only — visible in unrevealed regions; color clip stays unchanged above. */
 function GrayscaleImageLayer({
@@ -87,6 +99,7 @@ export function DreamImageReveal({
   revealDirection = 'physical-start',
   accentColor = colors.primary,
   showProgressBadge = true,
+  onRevealProgressSettled,
 }: DreamImageRevealProps) {
   const [layoutWidth, setLayoutWidth] = useState(0);
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -95,10 +108,27 @@ export function DreamImageReveal({
 
   const progressSv = useSharedValue(clampProgress(progress));
   const skipNextAnimationRef = useRef(true);
+  const sourceIdentityRef = useRef(sourceIdentity(source));
+  const previousProgressRef = useRef<number | null>(null);
+  const onSettledRef = useRef(onRevealProgressSettled);
+
+  onSettledRef.current = onRevealProgressSettled;
+
+  const notifyProgressSettled = useCallback(() => {
+    onSettledRef.current?.();
+  }, []);
 
   useEffect(() => {
     setImageLoadFailed(false);
-  }, [source]);
+    const nextIdentity = sourceIdentity(source);
+    if (nextIdentity !== sourceIdentityRef.current) {
+      sourceIdentityRef.current = nextIdentity;
+      skipNextAnimationRef.current = true;
+      const snapped = clampProgress(progress);
+      progressSv.value = snapped;
+      setBadgePercent(Math.round(snapped));
+    }
+  }, [progress, progressSv, source]);
 
   useEffect(() => {
     let mounted = true;
@@ -131,25 +161,46 @@ export function DreamImageReveal({
 
   useEffect(() => {
     const next = clampProgress(progress);
+    const previous = previousProgressRef.current;
+    previousProgressRef.current = next;
+    const progressChanged = previous !== null && previous !== next;
 
     if (skipNextAnimationRef.current) {
       progressSv.value = next;
       setBadgePercent(Math.round(next));
       skipNextAnimationRef.current = false;
+      if (progressChanged) {
+        notifyProgressSettled();
+      }
       return;
     }
 
     if (reduceMotion) {
       progressSv.value = next;
       setBadgePercent(Math.round(next));
+      if (progressChanged) {
+        notifyProgressSettled();
+      }
       return;
     }
 
-    progressSv.value = withTiming(next, {
-      duration: REVEAL_ANIMATION_MS,
-      easing: Easing.inOut(Easing.cubic),
-    });
-  }, [progress, progressSv, reduceMotion]);
+    if (!progressChanged) {
+      return;
+    }
+
+    progressSv.value = withTiming(
+      next,
+      {
+        duration: REVEAL_ANIMATION_MS,
+        easing: Easing.inOut(Easing.cubic),
+      },
+      (finished) => {
+        if (finished) {
+          runOnJS(notifyProgressSettled)();
+        }
+      },
+    );
+  }, [notifyProgressSettled, progress, progressSv, reduceMotion]);
 
   const onLayout = (event: LayoutChangeEvent) => {
     setLayoutWidth(event.nativeEvent.layout.width);

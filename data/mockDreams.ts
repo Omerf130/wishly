@@ -7,6 +7,8 @@ export const mockDreams: Dream[] = [
     subtitle: 'חופש תנועה בקצב שלך',
     savedAmount: 25_000,
     targetAmount: 100_000,
+    monthlySavingsAmount: null,
+    targetDate: null,
     accent: 'primary',
     visual: {
       type: 'asset',
@@ -20,6 +22,8 @@ export const mockDreams: Dream[] = [
     subtitle: 'שקט, שמש וים',
     savedAmount: 16_000,
     targetAmount: 40_000,
+    monthlySavingsAmount: null,
+    targetDate: null,
     accent: 'mint',
     visual: {
       type: 'asset',
@@ -33,6 +37,8 @@ export const mockDreams: Dream[] = [
     subtitle: 'כוח עבודה חדש ליום-יום',
     savedAmount: 7_200,
     targetAmount: 12_000,
+    monthlySavingsAmount: null,
+    targetDate: null,
     accent: 'peach',
     visual: {
       type: 'asset',
@@ -46,6 +52,8 @@ export const mockDreams: Dream[] = [
     subtitle: 'המקום שתמיד דמיינת',
     savedAmount: 150_000,
     targetAmount: 1_500_000,
+    monthlySavingsAmount: null,
+    targetDate: null,
     accent: 'pink',
     visual: {
       type: 'asset',

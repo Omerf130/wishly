@@ -1,5 +1,6 @@
 import { ValidationError } from '@/database/errors';
 import { assertPositiveAgorot } from '@/database/money';
+import { isValidCalendarDateYmd } from '@/utils/localCalendarDate';
 import type {
   CreateDreamInput,
   CreateTransactionInput,
@@ -26,11 +27,13 @@ export function validateCreateDreamInput(input: CreateDreamInput): void {
   if (!input.accentColor.trim()) {
     throw new ValidationError('צבע accent חובה');
   }
-  if (
-    input.plannedMonthlySavingAgorot != null &&
-    input.plannedMonthlySavingAgorot !== undefined
-  ) {
-    assertPositiveAgorot(input.plannedMonthlySavingAgorot, 'חיסכון חודשי מתוכנן');
+  if (input.monthlySavingsAgorot != null && input.monthlySavingsAgorot !== undefined) {
+    assertPositiveAgorot(input.monthlySavingsAgorot, 'חיסכון חודשי מתוכנן');
+  }
+  if (input.targetDate != null && input.targetDate !== undefined) {
+    if (!isValidCalendarDateYmd(input.targetDate)) {
+      throw new ValidationError('תאריך יעד לא תקין');
+    }
   }
   if (input.initialSavedAmountAgorot != null && input.initialSavedAmountAgorot !== undefined) {
     assertPositiveAgorot(input.initialSavedAmountAgorot, 'יתרת פתיחה');
@@ -53,11 +56,13 @@ export function validateUpdateDreamInput(input: UpdateDreamInput): void {
   if (input.accentColor !== undefined && !input.accentColor.trim()) {
     throw new ValidationError('צבע accent לא תקין');
   }
-  if (
-    input.plannedMonthlySavingAgorot !== undefined &&
-    input.plannedMonthlySavingAgorot !== null
-  ) {
-    assertPositiveAgorot(input.plannedMonthlySavingAgorot, 'חיסכון חודשי מתוכנן');
+  if (input.monthlySavingsAgorot !== undefined && input.monthlySavingsAgorot !== null) {
+    assertPositiveAgorot(input.monthlySavingsAgorot, 'חיסכון חודשי מתוכנן');
+  }
+  if (input.targetDate !== undefined && input.targetDate !== null) {
+    if (!isValidCalendarDateYmd(input.targetDate)) {
+      throw new ValidationError('תאריך יעד לא תקין');
+    }
   }
   if (input.status !== undefined && !DREAM_STATUSES.includes(input.status)) {
     throw new ValidationError('סטטוס חלום לא תקין');

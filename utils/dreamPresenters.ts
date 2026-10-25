@@ -25,6 +25,9 @@ export function mapDreamRecordToDream(
       subtitle: record.description ?? undefined,
       savedAmount: agorotToIls(savedAmountAgorot),
       targetAmount: agorotToIls(record.targetAmount),
+      monthlySavingsAmount:
+        record.monthlySavingsAgorot != null ? agorotToIls(record.monthlySavingsAgorot) : null,
+      targetDate: record.targetDate,
       accent: accent === 'primary' ? LOCAL_DREAM_IMAGE_ACCENT : accent,
       visual: {
         type: 'uri',
@@ -43,6 +46,9 @@ export function mapDreamRecordToDream(
     subtitle: record.description ?? undefined,
     savedAmount: agorotToIls(savedAmountAgorot),
     targetAmount: agorotToIls(record.targetAmount),
+    monthlySavingsAmount:
+      record.monthlySavingsAgorot != null ? agorotToIls(record.monthlySavingsAgorot) : null,
+    targetDate: record.targetDate,
     accent: meta?.accent ?? accent,
     visual: {
       type: 'asset',

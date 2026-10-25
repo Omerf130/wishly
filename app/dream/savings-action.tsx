@@ -25,7 +25,8 @@ import {
 } from '@/database';
 import { InsufficientBalanceError, ValidationError } from '@/database/errors';
 import { agorotToIls, ilsToAgorot } from '@/database/money';
-import { formatIlsExact } from '@/utils/formatCurrency';
+import { dreamProgressPercentFromAgorot, formatIlsExact } from '@/utils/formatCurrency';
+import { markPendingGoalCelebration } from '@/utils/pendingGoalCelebration';
 import { parseShekelsInput } from '@/utils/parseShekelsInput';
 
 type SavingsMode = 'deposit' | 'withdrawal';
@@ -44,6 +45,7 @@ export default function DreamSavingsActionScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [dreamTitle, setDreamTitle] = useState('');
   const [savedAgorot, setSavedAgorot] = useState(0);
+  const [targetAgorot, setTargetAgorot] = useState(0);
 
   const [mode, setMode] = useState<SavingsMode>('deposit');
   const [amountText, setAmountText] = useState('');
@@ -89,6 +91,7 @@ export default function DreamSavingsActionScreen() {
         if (!cancelled) {
           setDreamTitle(record.title);
           setSavedAgorot(balance);
+          setTargetAgorot(record.targetAmount);
         }
       } catch (err) {
         if (!cancelled) {
@@ -164,6 +167,7 @@ export default function DreamSavingsActionScreen() {
 
     try {
       const db = await getDatabase();
+      const progressBeforePercent = dreamProgressPercentFromAgorot(savedAgorot, targetAgorot);
       const input = {
         dreamId,
         amountAgorot,
@@ -174,6 +178,14 @@ export default function DreamSavingsActionScreen() {
         await addDeposit(db, input);
       } else {
         await addWithdrawal(db, input);
+      }
+
+      if (mode === 'deposit') {
+        const savedAfter = await getSavedAmountForDream(db, dreamId);
+        const progressAfterPercent = dreamProgressPercentFromAgorot(savedAfter, targetAgorot);
+        if (progressBeforePercent < 100 && progressAfterPercent >= 100) {
+          markPendingGoalCelebration(dreamId, progressBeforePercent);
+        }
       }
 
       const successTitle = mode === 'deposit' ? 'החיסכון נוסף' : 'המשיכה בוצעה';
@@ -200,7 +212,7 @@ export default function DreamSavingsActionScreen() {
       savingRef.current = false;
       setSubmitting(false);
     }
-  }, [dreamId, mode, note, parsedAmount, router, validateForm]);
+  }, [dreamId, mode, note, parsedAmount, router, savedAgorot, targetAgorot, validateForm]);
 
   if (loading) {
     return (

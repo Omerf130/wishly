@@ -32,6 +32,11 @@ import {
   copyPickerImageToDreamStore,
   deleteDreamImageFile,
 } from '@/utils/dreamLocalImages';
+import { DreamSavingsPlanFields } from '@/components/dreams/DreamSavingsPlanFields';
+import {
+  dreamPlanningFormValues,
+  validateDreamPlanningForm,
+} from '@/utils/dreamPlanningForm';
 import { parseShekelsInput } from '@/utils/parseShekelsInput';
 import { pickDreamGalleryImage } from '@/utils/pickDreamGalleryImage';
 
@@ -40,6 +45,8 @@ type FormErrors = {
   image?: string;
   target?: string;
   initial?: string;
+  monthly?: string;
+  targetDate?: string;
   general?: string;
 };
 
@@ -72,6 +79,8 @@ export default function CreateDreamScreen() {
   const [pickingImage, setPickingImage] = useState(false);
   const [targetShekels, setTargetShekels] = useState('');
   const [initialShekels, setInitialShekels] = useState('');
+  const [monthlyShekels, setMonthlyShekels] = useState('');
+  const [targetDateInput, setTargetDateInput] = useState('');
   const [errors, setErrors] = useState<FormErrors>({});
   const [saving, setSaving] = useState(false);
   const [keyboardMetrics, setKeyboardMetrics] = useState<KeyboardMetrics | null>(null);
@@ -154,8 +163,15 @@ export default function CreateDreamScreen() {
     if (!next.target && !next.initial && target !== null && initial > target) {
       next.initial = 'סכום התחלתי לא יכול לעלות על סכום היעד';
     }
+    const planningErrors = validateDreamPlanningForm(monthlyShekels, targetDateInput);
+    if (planningErrors.monthly) {
+      next.monthly = planningErrors.monthly;
+    }
+    if (planningErrors.targetDate) {
+      next.targetDate = planningErrors.targetDate;
+    }
     return next;
-  }, [imageChoice, initialShekels, targetShekels, title]);
+  }, [imageChoice, initialShekels, monthlyShekels, targetDateInput, targetShekels, title]);
 
   const onPickMyImage = useCallback(async () => {
     if (pickingImage || saving) {
@@ -226,6 +242,8 @@ export default function CreateDreamScreen() {
         accentColor = imageOption.accent;
       }
 
+      const planning = dreamPlanningFormValues(monthlyShekels, targetDateInput);
+
       const created = await createDream(db, {
         title: title.trim(),
         description: description.trim() || null,
@@ -233,6 +251,8 @@ export default function CreateDreamScreen() {
         imageType,
         imageReference,
         accentColor,
+        monthlySavingsAgorot: planning.monthlySavingsAgorot,
+        targetDate: planning.targetDateYmd,
         initialSavedAmountAgorot: initialAgorot > 0 ? initialAgorot : undefined,
       });
 
@@ -259,7 +279,17 @@ export default function CreateDreamScreen() {
       savingRef.current = false;
       setSaving(false);
     }
-  }, [description, imageChoice, router, targetShekels, title, initialShekels, validate]);
+  }, [
+    description,
+    imageChoice,
+    monthlyShekels,
+    router,
+    targetDateInput,
+    targetShekels,
+    title,
+    initialShekels,
+    validate,
+  ]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
@@ -422,6 +452,19 @@ export default function CreateDreamScreen() {
             {errors.initial ? <Text style={styles.fieldError}>{errors.initial}</Text> : null}
             <Text style={styles.hint}>ברירת מחדל: 0 ₪ — יישמר כפעולת חיסכון ראשונה אם גדול מאפס</Text>
           </View>
+
+          <DreamSavingsPlanFields
+            monthlyShekels={monthlyShekels}
+            targetDateInput={targetDateInput}
+            monthlyError={errors.monthly}
+            targetDateError={errors.targetDate}
+            onChangeMonthlyShekels={setMonthlyShekels}
+            onChangeTargetDateInput={setTargetDateInput}
+            onFocusMonthly={() => {
+              focusedAmountFieldRef.current = 'target';
+              scrollAmountFieldsIntoView();
+            }}
+          />
 
           {!keyboardVisible ? (
             <Pressable

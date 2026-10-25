@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, typography } from '@/constants/theme';
 
@@ -17,18 +17,22 @@ export function HomeHeader({ onPressSettings, onPressAddDream }: HomeHeaderProps
           accessibilityRole="button"
           accessibilityLabel="הגדרות"
           onPress={onPressSettings}
+          android_ripple={{ color: 'rgba(118, 86, 232, 0.14)', borderless: false }}
           style={({ pressed }) => [
             styles.sideButton,
             styles.settingsButton,
             pressed && styles.buttonPressed,
           ]}>
-          <Text style={styles.settingsGlyph}>⚙</Text>
+          <Text style={styles.settingsGlyph} allowFontScaling={false}>
+            ⚙
+          </Text>
         </Pressable>
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="הוספת חלום חדש"
           onPress={onPressAddDream}
+          android_ripple={{ color: 'rgba(255, 255, 255, 0.25)', borderless: false }}
           style={({ pressed }) => [
             styles.sideButton,
             styles.addButton,
@@ -50,8 +54,8 @@ export function HomeHeader({ onPressSettings, onPressAddDream }: HomeHeaderProps
 
 const styles = StyleSheet.create({
   wrapper: {
-    marginBottom: 12,
-    paddingTop: 4,
+    marginBottom: 10,
+    paddingTop: 2,
   },
   toolbar: {
     height: HEADER_HEIGHT,
@@ -70,11 +74,21 @@ const styles = StyleSheet.create({
   settingsButton: {
     left: 0,
     backgroundColor: colors.white,
-    shadowColor: colors.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 1,
-    shadowRadius: 10,
-    elevation: 3,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(38, 51, 75, 0.08)',
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.shadow,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 1,
+        shadowRadius: 10,
+      },
+      android: {
+        elevation: 0,
+      },
+      default: {},
+    }),
   },
   addButton: {
     right: 0,
@@ -107,18 +121,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 56,
     marginTop: -HEADER_HEIGHT,
-    paddingTop: HEADER_HEIGHT + 4,
+    paddingTop: HEADER_HEIGHT + 2,
   },
   title: {
     ...typography.screenTitle,
     textAlign: 'center',
-    fontSize: 30,
-    lineHeight: 38,
+    fontSize: 28,
+    lineHeight: 36,
   },
   subtitle: {
     ...typography.caption,
     textAlign: 'center',
-    marginTop: 6,
-    maxWidth: 280,
+    marginTop: 5,
+    maxWidth: 300,
+    lineHeight: 18,
   },
 });

@@ -1,5 +1,5 @@
-import { ComingSoonScreen } from '@/components/screens/ComingSoonScreen';
+import { SettingsScreen } from '@/components/settings/SettingsScreen';
 
-export default function SettingsScreen() {
-  return <ComingSoonScreen title="הגדרות" />;
+export default function SettingsScreenRoute() {
+  return <SettingsScreen />;
 }

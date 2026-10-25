@@ -12,7 +12,8 @@ export type DreamRecord = {
   imageType: DreamImageType;
   imageReference: string;
   accentColor: string;
-  plannedMonthlySaving: number | null;
+  monthlySavingsAgorot: number | null;
+  targetDate: string | null;
   status: DreamStatus;
   createdAt: string;
   updatedAt: string;
@@ -35,7 +36,8 @@ export type CreateDreamInput = {
   imageType: DreamImageType;
   imageReference: string;
   accentColor: string;
-  plannedMonthlySavingAgorot?: number | null;
+  monthlySavingsAgorot?: number | null;
+  targetDate?: string | null;
   /** Opening balance represented as an initial deposit transaction. */
   initialSavedAmountAgorot?: number;
 };
@@ -47,7 +49,8 @@ export type UpdateDreamInput = {
   imageType?: DreamImageType;
   imageReference?: string;
   accentColor?: string;
-  plannedMonthlySavingAgorot?: number | null;
+  monthlySavingsAgorot?: number | null;
+  targetDate?: string | null;
   status?: DreamStatus;
 };
 

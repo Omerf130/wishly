@@ -22,8 +22,10 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="dream/create" options={{ headerShown: false }} />
+            <Stack.Screen name="dream/edit" options={{ headerShown: false }} />
             <Stack.Screen name="dream/savings-action" options={{ headerShown: false }} />
             <Stack.Screen name="dream/[id]" options={{ headerShown: false }} />
+            <Stack.Screen name="summary/savings-history" options={{ headerShown: false }} />
             <Stack.Screen name="dev/sqlite-test" options={{ headerShown: false }} />
             <Stack.Screen name="dev/keyboard-test" options={{ headerShown: false }} />
           </Stack>

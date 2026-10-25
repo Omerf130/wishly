@@ -24,8 +24,10 @@ export {
   getDreamById,
   listDreams,
   updateDream,
+  countDreamsWithLocalImageReference,
   archiveDream,
   deleteDream,
+  deleteDreamWithLocalImageCleanup,
 } from '@/database/dreamsRepository';
 
 export {
@@ -36,6 +38,42 @@ export {
   deleteTransaction,
   getSavedAmountForDream,
 } from '@/database/transactionsRepository';
+
+export {
+  getFinancialActivitySummary,
+  buildFinancialActivitySummaryFromTotals,
+  computeFinancialProgressMetrics,
+  type DreamBalanceTarget,
+  type FinancialActivitySummary,
+} from '@/database/financialActivitySummary';
+
+export {
+  listRecentSavingsActivity,
+  mapRecentSavingsActivityRow,
+  compareRecentSavingsActivityNewestFirst,
+  formatRecentSavingsActivityDate,
+  type RecentSavingsActivityItem,
+} from '@/database/recentSavingsActivity';
+
+export {
+  buildSavingsHistorySql,
+  listSavingsHistoryPage,
+  listActiveDreamFilterOptions,
+  mergeSavingsHistoryItems,
+  type SavingsHistoryTypeFilter,
+  type SavingsHistoryQuery,
+  type SavingsHistoryPage,
+  type SavingsHistoryCursor,
+  type DreamFilterOption,
+} from '@/database/savingsHistoryRepository';
+
+export {
+  listSavingsTimelineTransactions,
+  type SavingsTimelineTransaction,
+  type SavingsProgressChartPoint,
+  type SavingsProgressChartSeries,
+  type SavingsProgressChartMode,
+} from '@/database/savingsProgressTimeline';
 
 export {
   runWishlyDatabaseSelfTest,

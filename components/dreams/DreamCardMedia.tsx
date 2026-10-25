@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 
 import { ImageBottomGradient } from '@/components/ui/ImageBottomGradient';
 import { colors, typography } from '@/constants/theme';
@@ -15,7 +15,15 @@ type DreamCardMediaProps = {
 /**
  * Image / placeholder area — base layer for future reveal (grayscale + color overlay).
  */
+const MEDIA_ASPECT_DEFAULT = 16 / 10;
+/** Slightly wider ratio on narrow phones — shorter image area, same cover resize. */
+const MEDIA_ASPECT_NARROW = 1.85;
+const NARROW_WIDTH_BREAKPOINT = 392;
+
 export function DreamCardMedia({ title, visual, accentColor }: DreamCardMediaProps) {
+  const { width: windowWidth } = useWindowDimensions();
+  const mediaAspect =
+    windowWidth < NARROW_WIDTH_BREAKPOINT ? MEDIA_ASPECT_NARROW : MEDIA_ASPECT_DEFAULT;
   const imageSource = resolveDreamImageSource(visual);
   const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
@@ -26,7 +34,7 @@ export function DreamCardMedia({ title, visual, accentColor }: DreamCardMediaPro
   const hasPhoto = imageSource != null && !imageLoadFailed;
 
   return (
-    <View style={styles.media}>
+    <View style={[styles.media, { aspectRatio: mediaAspect }]}>
       <View style={styles.mediaInner}>
         {imageSource && !imageLoadFailed ? (
           <>
@@ -67,7 +75,6 @@ export function DreamCardMedia({ title, visual, accentColor }: DreamCardMediaPro
 const styles = StyleSheet.create({
   media: {
     width: '100%',
-    aspectRatio: 16 / 10,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     overflow: 'hidden',

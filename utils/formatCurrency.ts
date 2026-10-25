@@ -25,3 +25,20 @@ export function dreamProgressPercent(saved: number, target: number): number {
   }
   return Math.min(100, Math.round((saved / target) * 100));
 }
+
+export function dreamProgressPercentFromAgorot(
+  savedAgorot: number,
+  targetAgorot: number,
+): number {
+  if (targetAgorot <= 0) {
+    return 0;
+  }
+  return Math.min(100, Math.round((savedAgorot / targetAgorot) * 100));
+}
+
+export function isDreamSavingsGoalReached(saved: number, target: number): boolean {
+  if (target <= 0) {
+    return false;
+  }
+  return saved >= target;
+}

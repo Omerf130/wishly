@@ -32,6 +32,10 @@ export type Dream = {
   subtitle?: string;
   savedAmount: number;
   targetAmount: number;
+  /** Optional monthly plan in whole ILS units (from agorot). */
+  monthlySavingsAmount: number | null;
+  /** Local calendar date YYYY-MM-DD. */
+  targetDate: string | null;
   accent: DreamAccent;
   visual: DreamVisual;
 };
