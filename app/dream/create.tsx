@@ -1,9 +1,8 @@
 import { type Href, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator,
   Image,
-  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -65,13 +64,13 @@ export default function CreateDreamScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const savingRef = useRef(false);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
   const focusedAmountFieldRef = useRef<AmountField | null>(null);
 
-  const titleInputRef = useRef<TextInput>(null);
-  const descriptionInputRef = useRef<TextInput>(null);
-  const targetInputRef = useRef<TextInput>(null);
-  const initialInputRef = useRef<TextInput>(null);
+  const titleInputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const descriptionInputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const targetInputRef = useRef<ComponentRef<typeof TextInput>>(null);
+  const initialInputRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -104,7 +103,7 @@ export default function CreateDreamScreen() {
   }, []);
 
   const scrollAmountFieldsIntoView = useCallback(() => {
-    InteractionManager.runAfterInteractions(() => {
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       });

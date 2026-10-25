@@ -1,9 +1,8 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   ActivityIndicator,
   Image,
-  InteractionManager,
   Keyboard,
   KeyboardAvoidingView,
   Platform,
@@ -75,7 +74,7 @@ export default function EditDreamScreen() {
 
   const savingRef = useRef(false);
   const originalRecordRef = useRef<DreamRecord | null>(null);
-  const scrollRef = useRef<ScrollView>(null);
+  const scrollRef = useRef<ComponentRef<typeof ScrollView>>(null);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -110,7 +109,7 @@ export default function EditDreamScreen() {
   }, []);
 
   const scrollTargetIntoView = useCallback(() => {
-    InteractionManager.runAfterInteractions(() => {
+    requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         scrollRef.current?.scrollToEnd({ animated: true });
       });

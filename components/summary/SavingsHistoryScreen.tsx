@@ -136,7 +136,7 @@ export function SavingsHistoryScreen() {
                 <View style={styles.footerLoading}>
                   <ActivityIndicator size="small" color={colors.primary} />
                 </View>
-              ) : hasMore ? null : (
+              ) : hasMore ? undefined : (
                 <View style={styles.footerEnd} />
               )
             }

@@ -5,6 +5,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { TabBarIcon } from '@/components/navigation/TabBarIcon';
 import { colors } from '@/constants/theme';
 
+export const unstable_settings = {
+  initialRouteName: 'home',
+};
+
 const TAB_BODY_HEIGHT = 58;
 const WARM_INACTIVE = 'rgba(38, 51, 75, 0.52)';
 
@@ -24,7 +28,6 @@ export default function TabsLayout() {
 
   return (
     <Tabs
-      initialRouteName="home"
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
